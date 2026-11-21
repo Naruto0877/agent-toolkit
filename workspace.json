@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "name": "agent-toolkit",
+  "projects": {
+    "cli-provider-core": {
+      "kind": "library",
+      "path": "packages/cli-provider-core",
+      "python_source": "src",
+      "tests": "tests",
+      "include": [
+        "pyproject.toml",
+        "README.md",
+        "src/**/*.py",
+        "tests/*.py"
+      ],
+      "dependencies": []
+    },
+    "codex-scheduler": {
+      "kind": "application",
+      "path": "apps/codex-scheduler",
+      "python_source": ".",
+      "tests": "tests",
+      "installer": "install.sh",
+      "launcher": "bin/codex-scheduler",
+      "include": [
+        "README.md",
+        "pyproject.toml",
+        "install.sh",
+        "bin/*",
+        "codex_scheduler/**/*.py",
+        "scripts/*.py",
+        "tests/*.py",
+        "docs/*.md",
+        "examples/*.json"
+      ],
+      "dependencies": [
+        "cli-provider-core"
+      ],
+      "provider_registry": "codex_scheduler.providers:registry"
+    }
+  }
+}

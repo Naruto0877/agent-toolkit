@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "setup-codex-scheduler": {
+      "path": "codex/setup-codex-scheduler",
+      "provider": "codex",
+      "projects": [
+        "codex-scheduler"
+      ],
+      "application": "codex-scheduler",
+      "files": [
+        "SKILL.md",
+        "agents/*.yaml",
+        "scripts/*.py",
+        "references/**/*.md",
+        "assets/templates/**/*"
+      ]
+    }
+  }
+}

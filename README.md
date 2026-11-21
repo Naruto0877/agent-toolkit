@@ -1,39 +1,56 @@
-# codex-scheduler
+# agent-toolkit
 
-Run Codex tasks through isolated ChatGPT account profiles, with durable queues and usage-aware scheduling. Tasks stay on their selected account and saved thread when a usage limit requires waiting.
+A reusable workspace for CLI applications, shared provider contracts, and an expanding skill catalog. Application code, provider implementations, and skill instructions have separate homes.
 
-The CLI uses Python 3.10+ and the official Codex CLI. It has no third-party Python runtime dependencies. One foreground worker executes work; an empty queue sends no model messages.
+The first working application is **codex-scheduler**: isolated account profiles, usage-aware selection, durable queues, and account-pinned resume. Gemini, Claude, and custom CLIs have an extension path; their real integrations are not implemented yet.
 
-## Quick start
+## Layout
 
-Authenticate to GitHub with access to this private repository, then clone it:
+```text
+apps/
+  codex-scheduler/          Runnable scheduler, CLI, tests, docs, and examples
+packages/
+  cli-provider-core/        Shared provider/session contracts and capability registry
+skills/
+  catalog.json              Skill IDs, locations, and project dependencies
+  codex/
+    setup-codex-scheduler/   Setup workflow and helper; generated assets stay out of Git
+tools/
+  workspace.py              List, install, run, and test workspace projects
+  skills/                   Catalog-driven skill builder and installer
+  tests/                    Packaging and extension checks
+docs/                       Workspace structure and contribution/extension guides
+workspace.json              Project paths, source allowlists, and dependency graph
+```
+
+New skills are catalog entries, not changes to a Codex-specific packaging script. New CLI integrations own their protocol, login, usage, and resume behavior behind a provider boundary. The skill host and the CLI being configured are separate concepts.
+
+## Clone and check
+
+Use Python 3.10+ on macOS/Linux, or WSL/Linux on Windows. Authenticate to GitHub with access to this private repository:
 
 ```sh
-git clone https://github.com/Naruto0877/codex-scheduler.git
-cd codex-scheduler
-sh install.sh
-export PATH="$PWD/.venv/bin:$PATH"
-export CODEX_SCHEDULER_HOME="$PWD/.state"
+git clone https://github.com/Naruto0877/agent-toolkit.git
+cd agent-toolkit
+python3 tools/workspace.py list
+python3 tools/workspace.py test
+python3 tools/workspace.py providers
+```
+
+Tests use fixtures and local process doubles; no Codex login, network, or model messages are required. Provider listing distinguishes the implemented Codex backend from its fake fixture. It does not claim Gemini/Claude support.
+
+## Use the Codex scheduler
+
+```sh
+python3 tools/workspace.py install codex-scheduler
+export PATH="$PWD/apps/codex-scheduler/.venv/bin:$PATH"
+export CODEX_SCHEDULER_HOME="$PWD/apps/codex-scheduler/.state"
 codex-scheduler doctor
-```
-
-Run the fixture tests without needing Codex login or network access:
-
-```sh
-./.venv/bin/python -m unittest discover -s tests -v
-```
-
-Create the first isolated profile and complete the official login in your terminal/browser:
-
-```sh
 codex-scheduler account add A --email first@example.com
-codex-scheduler account verify A
 codex-scheduler status --refresh
 ```
 
-Replace the example email. Add B/C whenever ready with their own expected emails. Existing default Codex credentials are preserved. Every alias has its own `CODEX_HOME`; a mismatched email disables that alias.
-
-Submit a task and run the worker:
+Replace the example email and complete the official browser flow. A becomes usable after its own verification/capacity check; other profiles can be added later. Default Codex credentials are preserved, and an unexpected authenticated email disables the alias.
 
 ```sh
 PROJECT=/absolute/path/to/your/project
@@ -41,76 +58,46 @@ codex-scheduler run --auto --project "$PROJECT" --sandbox read-only 'Review the 
 codex-scheduler worker
 ```
 
-`run` enqueues work. `worker` executes it and stays in the foreground. Use a second terminal with the same `CODEX_SCHEDULER_HOME` to inspect the queue or answer approvals. The scheduler manages CLI-submitted tasks, not this or another pre-existing chat.
+`run` enqueues and `worker` executes. Keep the foreground worker open; use another terminal with the same state directory for queue inspection and approvals. It does not adopt an existing chat or generate model messages for an empty queue.
 
-## Commands
-
-| Action | Command |
-|---|---|
-| Check installation/schema | `codex-scheduler doctor` |
-| Fresh account/usage status | `codex-scheduler status --refresh` |
-| Bind a task to an account | `codex-scheduler run --account B --project /path 'Task'` |
-| Automatic selection | `codex-scheduler run --auto --project /path 'Task'` |
-| Large-task checkpoint hint | `codex-scheduler run --auto --size large --headroom 25 --project /path 'Task'` |
-| Pending jobs | `codex-scheduler queue` |
-| Inspect history and attempts | `codex-scheduler inspect JOB_ID` |
-| Cancel | `codex-scheduler cancel JOB_ID` |
-| Pending approvals | `codex-scheduler approvals` |
-| Answer command/file approval | `codex-scheduler approve APPROVAL_ID --decision accept` |
-
-Auto mode refreshes stale observations, checks applicable windows, and prefers sufficient checkpoint headroom with the earliest usable refresh. Explicit account selection is binding. Unknown usage excludes an account from auto selection; manual selection remains available for new work.
-
-A confirmed usage limit persists thread/turn IDs and a durable recheck time. Capacity is reread before one continuation is sent when the worker is free. A short-window reset cannot override an exhausted weekly window. Missing/revised reset estimates, approvals, and cancellations are retained.
-
-A crash during submission may leave an ambiguous outcome: such jobs become `needs_review` instead of being replayed automatically. The scheduler does not promise exactly-once external side effects. See [operations and recovery](docs/OPERATIONS.md).
-
-## Portable setup skill
-
-Install the reusable skill from this clone:
+You can also run a project's source launcher through the workspace tool without editing PATH:
 
 ```sh
-python3 scripts/install_skill.py
+python3 tools/workspace.py run codex-scheduler -- --help
+python3 tools/workspace.py test codex-scheduler
 ```
 
-For saved expected-email mappings, first create an ignored local configuration:
+See the [scheduler application guide](apps/codex-scheduler/README.md), [new-machine setup](apps/codex-scheduler/docs/SETUP.md), and [operations/recovery](apps/codex-scheduler/docs/OPERATIONS.md).
+
+## Build or install a skill
 
 ```sh
-cp examples/profiles.example.json profiles.local.json
-# Edit profiles.local.json with the intended emails.
-python3 scripts/install_skill.py --profiles profiles.local.json
+python3 tools/skills/build.py --list
+python3 tools/skills/build.py --skill setup-codex-scheduler --output dist
+python3 tools/skills/install.py setup-codex-scheduler
 ```
 
-Use one of these installation commands, not both: an existing skill is never overwritten. Then start a new Codex session and ask:
+The installer targets the current Codex skills directory by default and refuses to overwrite an existing skill. For saved account mappings, edit the ignored local file before installation:
+
+```sh
+cp apps/codex-scheduler/examples/profiles.example.json profiles.local.json
+# Replace the example emails.
+python3 tools/skills/install.py setup-codex-scheduler --profiles profiles.local.json
+```
+
+Choose one installation command; do not install twice over an existing skill. Start a new Codex session and ask:
 
 ```text
 Use $setup-codex-scheduler to set up the scheduler on this machine.
 ```
 
-The installer bundles this checkout's current source into the skill, validates its checksum, and excludes credentials, local state, and local configuration. Without a profiles file, the skill installs/tests the CLI and asks for account mappings before registration. You still complete official sign-ins locally. See [skill setup](docs/SKILL.md).
+The self-contained package includes only its declared projects plus transitive dependencies. Credentials, sessions, local configuration, virtual environments, and databases are excluded. Email mappings are included only with an explicit `--profiles` input. Official sign-in remains a local interactive step.
 
-## Layout
+## Extend the workspace
 
-```text
-bin/                     Source launcher
-codex_scheduler/         CLI, protocol transport, scheduling, usage, SQLite storage
-scripts/                 Install support, skill packaging, live probe, macOS service generator
-skills/                  Portable setup skill instructions and helper
-examples/                Fake-clock scenarios and generic profile configuration
-tests/                   Deterministic scheduler and process/transport tests
-docs/                    Setup, operations, architecture, and validation notes
-.github/workflows/       Offline fixture checks on Linux and macOS
-```
+- [Structure and boundaries](docs/STRUCTURE.md)
+- [Add a skill](docs/ADDING-SKILLS.md)
+- [Add a provider or CLI application](docs/ADDING-PROVIDERS.md)
+- [Portable skill setup](docs/SKILLS.md)
 
-[New-machine setup](docs/SETUP.md) · [Operations](docs/OPERATIONS.md) · [Architecture](docs/ARCHITECTURE.md) · [Validation](docs/VALIDATION.md)
-
-## Updates
-
-Commit or stash your source changes before pulling updates:
-
-```sh
-git pull --ff-only
-sh install.sh
-./.venv/bin/python -m unittest discover -s tests -v
-```
-
-Stop the worker before updating source. Keep `.state/` local and backed up separately. Account allowances are shared across machines, while queues/worktree locks are local; avoid duplicate jobs on a shared project. Do not synchronize the SQLite state between active installations.
+Keep private state and local profiles out of Git. Queues/locks are local to each machine; same-account usage remains shared. Stop a worker before updating its source and rerun the project installer/tests after pulling changes.

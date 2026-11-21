@@ -20,11 +20,11 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
-      - name: Unit, process, and packaging tests
-        run: python -m unittest discover -s tests -v
-      - name: Build portable skill
-        run: python scripts/build_skill.py --output dist
-      - name: Verify source installer
+      - name: Project, provider, and tooling tests
+        run: python tools/workspace.py test
+      - name: Build every catalog skill
+        run: python tools/skills/build.py --all --output dist
+      - name: Verify application installer
         run: |
-          sh install.sh
-          .venv/bin/codex-scheduler --version
+          python tools/workspace.py install codex-scheduler
+          apps/codex-scheduler/.venv/bin/codex-scheduler --version
