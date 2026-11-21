@@ -10,7 +10,7 @@ The existing `codex-scheduler` command and its `--account`/`--auto` behavior rem
 
 Reusable runtime code lives in `packages/<package>/`. `cli-provider-core` defines backend/session contracts, explicit capabilities, and registry behavior. Codex's backend implements these contracts; its registry distinguishes live and fixture adapters. Native operation names/events remain provider-specific.
 
-The source installer links the declared local package into the app's virtual environment with a local `.pth` file. No third-party Python runtime packages are downloaded. Normal distribution metadata also declares the dependency for tooling; the documented workspace installer is the offline source-install path.
+The workspace installer passes its selected Python through `AGENT_TOOLKIT_PYTHON`; `install --python /path/to/python` makes that choice explicit. The app validates Python 3.10+, preserves incompatible environments as ignored backups, links its local package through a `.pth` file, and imports the CLI before announcing success. No third-party Python runtime packages are downloaded. Normal distribution metadata also declares the dependency for tooling; the documented workspace installer is the offline source-install path.
 
 ## Skills
 

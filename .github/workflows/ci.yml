@@ -28,3 +28,24 @@ jobs:
         run: |
           python tools/workspace.py install codex-scheduler
           apps/codex-scheduler/.venv/bin/codex-scheduler --version
+
+  runtime-repair:
+    name: Legacy Python repair / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        id: legacy
+        with:
+          python-version: '3.9'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Legacy rejection and environment repair regression tests
+        env:
+          TOOLKIT_TEST_LEGACY_PYTHON: ${{ steps.legacy.outputs.python-path }}
+        run: python -m unittest discover -s tools/tests -p test_runtime_installation.py -v

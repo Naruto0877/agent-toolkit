@@ -60,6 +60,14 @@ codex-scheduler worker
 
 `run` enqueues and `worker` executes. Keep the foreground worker open; use another terminal with the same state directory for queue inspection and approvals. It does not adopt an existing chat or generate model messages for an empty queue.
 
+If the default `python3` is older than 3.10, choose an installed supported interpreter explicitly:
+
+```sh
+python3 tools/workspace.py install codex-scheduler --python /absolute/path/to/python3.12
+```
+
+The installer validates the selected runtime before creating the launcher, preserves an incompatible old environment as `.venv-backup-*`, leaves account state untouched, and checks the real CLI import before reporting success. See [Python repair steps](apps/codex-scheduler/docs/SETUP.md#repair-an-older-python-environment) for macOS commands.
+
 You can also run a project's source launcher through the workspace tool without editing PATH:
 
 ```sh

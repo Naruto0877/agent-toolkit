@@ -40,7 +40,7 @@ def profiles_from(path=None):
 
 
 def allowed(path):
-    return not (BLOCKED.intersection(path.parts) or path.name in ('auth.json','profiles.local.json','settings.json') or path.name.startswith('.env') or path.name.endswith('.local.json') or path.suffix in ('.sqlite3','.db','.log','.pyc'))
+    return not (BLOCKED.intersection(path.parts) or any(part.startswith('.venv-backup-') for part in path.parts) or path.name in ('auth.json','profiles.local.json','settings.json') or path.name.startswith('.env') or path.name.endswith('.local.json') or path.suffix in ('.sqlite3','.db','.log','.pyc'))
 
 
 def matched(base,patterns):

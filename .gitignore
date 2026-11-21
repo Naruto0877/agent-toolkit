@@ -1,5 +1,6 @@
 # Local runtime, credentials, and environment
 .venv/
+.venv-backup-*/
 .state/
 *-state/
 .env

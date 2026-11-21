@@ -85,3 +85,27 @@ codex-scheduler --backend fake --home "$FAKE_HOME" --fixture examples/three-acco
 The example chooses A (20% left, refresh in eight minutes) over B (75% left, refresh in three hours). C starts exhausted. Fixture tests cover C being rechecked at twelve minutes while B runs and a saved C task resuming only after relevant capacity returns. Fake and real state directories cannot be mixed.
 
 Fresh-machine installation does not migrate active jobs, approvals, saved sessions, or this conversation. Sign in again locally instead of copying `.state/`, `.venv/`, or `~/.codex/` from the other machine.
+
+## Repair an older Python environment
+
+An error mentioning `unsupported operand type(s) for |` while importing provider contracts usually means the launcher is using Python older than 3.10. Check:
+
+```sh
+apps/codex-scheduler/.venv/bin/python --version
+```
+
+From the workspace root on macOS with Homebrew:
+
+```sh
+git pull --ff-only
+brew install python@3.12
+python3 tools/workspace.py install codex-scheduler --python "$(brew --prefix python@3.12)/bin/python3.12"
+export PATH="$PWD/apps/codex-scheduler/.venv/bin:$PATH"
+export CODEX_SCHEDULER_HOME="$PWD/apps/codex-scheduler/.state"
+codex-scheduler --version
+codex-scheduler doctor
+```
+
+The versioned Homebrew formula/binary is documented at [python@3.12](https://formulae.brew.sh/formula/python@3.12). `--python` can instead point to any already-installed supported Python. The workspace installer will also look for versioned supported runtimes on PATH when no explicit selection is given.
+
+An incompatible existing `.venv` is renamed to `.venv-backup-*` before a new environment is created. No account credentials or scheduler database are moved or reset. Keep the backup until the repaired CLI works. Re-running installation with an explicitly unsupported runtime fails before modifying the environment. Stop a running worker before changing its installed environment.

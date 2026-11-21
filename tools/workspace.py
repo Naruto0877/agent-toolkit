@@ -6,6 +6,7 @@ import importlib
 import os
 from pathlib import Path, PurePosixPath
 import subprocess
+import shutil
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -16,8 +17,10 @@ def within(base,relative):
     if relative.is_absolute() or '..' in relative.parts:
         raise ValueError('Path must stay inside its declared root')
     path=base/Path(*relative.parts)
-    if not path.resolve().is_relative_to(base.resolve()):
-        raise ValueError('Path escapes its declared root')
+    try:
+        path.resolve().relative_to(base.resolve())
+    except ValueError:
+        raise ValueError('Path escapes its declared root') from None
     return path
 
 
@@ -53,8 +56,23 @@ def environment(root=ROOT):
     return env
 
 
-def execute(args,cwd,root=ROOT):
-    return subprocess.run([str(a) for a in args],cwd=cwd,env=environment(root),check=True)
+def select_python(requested=None):
+    candidates=[requested] if requested else [sys.executable,*['python3.'+str(minor) for minor in range(15,9,-1)]]
+    for candidate in candidates:
+        executable=shutil.which(candidate)
+        if not executable: continue
+        try:
+            result=subprocess.run([executable,'-c','import json,sys; print(json.dumps(list(sys.version_info[:2])))'],capture_output=True,text=True,check=True)
+            if tuple(json.loads(result.stdout)) >= (3,10): return executable
+        except (OSError,ValueError,subprocess.CalledProcessError):
+            continue
+    raise ValueError('Python 3.10+ is required. On macOS: brew install python@3.12; then run tools/workspace.py install codex-scheduler --python /path/to/python3.12.')
+
+
+def execute(args,cwd,root=ROOT,python=None):
+    env=environment(root)
+    if python: env['AGENT_TOOLKIT_PYTHON']=str(python)
+    return subprocess.run([str(a) for a in args],cwd=cwd,env=env,check=True)
 
 
 def main(argv=None):
@@ -64,9 +82,13 @@ def main(argv=None):
     sub.add_parser('providers')
     test=sub.add_parser('test');test.add_argument('project',nargs='?')
     install=sub.add_parser('install');install.add_argument('project')
+    install.add_argument('--python',help='Python 3.10+ executable used to create/repair the app environment')
     run=sub.add_parser('run');run.add_argument('project');run.add_argument('args',nargs=argparse.REMAINDER)
     args=parser.parse_args(argv)
     projects=manifest()['projects']
+    if args.command in ('providers','test') and sys.version_info < (3,10):
+        selected=select_python()
+        return subprocess.run([selected,str(Path(__file__).resolve()),*(argv if argv is not None else sys.argv[1:])]).returncode
     if args.command=='list':
         print(json.dumps(projects,indent=2));return 0
     if args.command=='providers':
@@ -91,11 +113,14 @@ def main(argv=None):
     project=projects[args.project];path=within(ROOT,project['path'])
     if args.command=='install':
         if not project.get('installer'): raise ValueError('Project has no source installer: '+args.project)
-        execute(['sh',within(path,project['installer'])],path)
+        selected=select_python(args.python or os.environ.get('AGENT_TOOLKIT_PYTHON'))
+        execute(['sh',within(path,project['installer'])],path,python=selected)
     else:
         if not project.get('launcher'): raise ValueError('Project has no CLI launcher: '+args.project)
         forwarded=args.args[1:] if args.args[:1]==['--'] else args.args
-        execute([sys.executable,within(path,project['launcher']),*forwarded],path)
+        installed=path/'.venv/bin/python'
+        selected=select_python(str(installed) if installed.exists() else None)
+        execute([selected,within(path,project['launcher']),*forwarded],path)
     return 0
 
 

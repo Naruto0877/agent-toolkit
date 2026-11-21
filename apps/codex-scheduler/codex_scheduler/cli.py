@@ -11,6 +11,9 @@ import subprocess
 import sys
 import tempfile
 import time
+if sys.version_info < (3,10):
+    raise SystemExit("codex-scheduler requires Python 3.10+; reinstall with a supported interpreter.")
+
 from . import __version__
 from .providers import FakeBackend, RealBackend, create_backend, registry
 from .core import Scheduler
@@ -51,7 +54,7 @@ def show_job(job):
 
 def doctor(args):
     codex = shutil.which(args.codex)
-    report = {'scheduler': __version__, 'os': platform.platform(), 'architecture': platform.machine(), 'shell': os.environ.get('SHELL', os.environ.get('COMSPEC', 'unknown')), 'python': sys.version.split()[0], 'codex': codex, 'default_login_touched': False}
+    report = {'scheduler': __version__, 'os': platform.platform(), 'architecture': platform.machine(), 'shell': os.environ.get('SHELL', os.environ.get('COMSPEC', 'unknown')), 'python': sys.version.split()[0], 'python_executable': sys.executable, 'minimum_python': '3.10', 'codex': codex, 'default_login_touched': False}
     if not codex:
         report['next_step'] = 'Install the official CLI: brew install --cask codex (macOS), or npm install -g @openai/codex; then codex-scheduler doctor'
         report['fake_backend'] = 'codex-scheduler --backend fake --home ./fake-state account add A'
