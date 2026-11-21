@@ -1,0 +1,29 @@
+{
+  "accounts": {
+    "A": {
+      "usage": {
+        "ordinaryUsageAllowed": true,
+        "accountId": "fake-A",
+        "rateLimits": {"limitId": "codex", "primary": {"usedPercent": 80, "resetsAt": 1480}, "secondary": {"usedPercent": 0, "resetsAt": 605800}}
+      }
+    },
+    "B": {
+      "usage": {
+        "ordinaryUsageAllowed": true,
+        "accountId": "fake-B",
+        "rateLimits": {"limitId": "codex", "primary": {"usedPercent": 25, "resetsAt": 11800}, "secondary": {"usedPercent": 0, "resetsAt": 605800}}
+      }
+    },
+    "C": {
+      "usage": {
+        "ordinaryUsageAllowed": false,
+        "accountId": "fake-C",
+        "rateLimits": {"limitId": "codex", "primary": {"usedPercent": 100, "resetsAt": 1720}, "secondary": {"usedPercent": 0, "resetsAt": 605800}}
+      },
+      "frames": [
+        {"at": 1720, "usage": {"ordinaryUsageAllowed": false, "accountId": "fake-C", "rateLimits": {"limitId": "codex", "primary": {"usedPercent": 0, "resetsAt": 19720}, "secondary": {"usedPercent": 100, "resetsAt": 4600}}}},
+        {"at": 4600, "usage": {"ordinaryUsageAllowed": true, "accountId": "fake-C", "rateLimits": {"limitId": "codex", "primary": {"usedPercent": 0, "resetsAt": 19720}, "secondary": {"usedPercent": 0, "resetsAt": 609400}}}}
+      ]
+    }
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Set Up Codex Scheduler"
+  short_description: "Install scheduler with isolated account profiles"
+  default_prompt: "Use $setup-codex-scheduler to set up the scheduler on this machine with my saved account mappings."
